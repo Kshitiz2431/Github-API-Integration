@@ -1,11 +1,8 @@
 import express from 'express';
-import { Octokit } from 'octokit';
 import dotenv from 'dotenv';
-
+import { Octokit } from 'octokit';
 dotenv.config();
 
-const app = express();
-app.use(express.json());
 
 const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN
@@ -13,8 +10,7 @@ const octokit = new Octokit({
 
 const username = process.env.GITHUB_USERNAME;
 
-// GET /github - Show user data and repositories
-app.get('/github', async (req, res) => {
+const getUserData=async (req, res) => {
   try {
     const [userResponse, reposResponse] = await Promise.all([
       octokit.rest.users.getByUsername({ username }),
@@ -39,10 +35,8 @@ app.get('/github', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-});
-
-// GET /github/{repo-name} - Show repository data
-app.get('/github/:repo', async (req, res) => {
+}
+const getRepoData=async (req, res) => {
   try {
     const { repo } = req.params;
     const repoResponse = await octokit.rest.repos.get({
@@ -66,10 +60,9 @@ app.get('/github/:repo', async (req, res) => {
   } catch (error) {
     res.status(error.status || 500).json({ error: error.message });
   }
-});
+}
 
-// POST /github/{repo-name}/issues - Create an issue
-app.post('/github/:repo/issues', async (req, res) => {
+const createRepoIssue=async (req, res) => {
   try {
     const { repo } = req.params;
     const { title, body } = req.body;
@@ -92,7 +85,20 @@ app.post('/github/:repo/issues', async (req, res) => {
   } catch (error) {
     res.status(error.status || 500).json({ error: error.message });
   }
-});
+}
+
+const app = express();
+app.use(express.json());
+
+// GET /github - Show user data and repositories
+app.get('/github', getUserData);
+
+// GET /github/{repo-name} - Show repository data
+app.get('/github/:repo',getRepoData );
+
+// POST /github/{repo-name}/issues - Create an issue
+app.post('/github/:repo/issues', createRepoIssue);
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
